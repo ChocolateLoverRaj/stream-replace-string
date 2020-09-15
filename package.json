@@ -1,0 +1,35 @@
+{
+  "name": "stream-replace-string",
+  "version": "1.0.0",
+  "description": "Replaces strings in a stream.",
+  "main": "./dist/cjs/index.cjs",
+  "type": "module",
+  "exports": {
+    "import": "./index.js",
+    "require": "./dist/cjs/index.cjs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChocolateLoverRaj/stream-replace-string.git"
+  },
+  "keywords": [
+    "string",
+    "replace",
+    "find",
+    "find-and-replace",
+    "stream",
+    "transform"
+  ],
+  "author": "Rajas Paranjpe",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ChocolateLoverRaj/stream-replace-string/issues"
+  },
+  "homepage": "https://github.com/ChocolateLoverRaj/stream-replace-string#readme",
+  "devDependencies": {
+    "through2": "^4.0.2"
+  }
+}
