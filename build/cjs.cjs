@@ -1,4 +1,3 @@
-const rollup = require('rollup');
 const path = require('path');
 const fsPromises = require('fs').promises;
 
@@ -20,7 +19,7 @@ const outputOptions = {
 
 var alreadyBuilt;
 
-const build = async () => {
+const build = async rollup => {
     console.warn("Building CommonJs file using rollup. Please switch to using ESModules.");
 
     const save = async () => {
