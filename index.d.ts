@@ -10,4 +10,4 @@ type ReplacerFunc = (matches?: number) => ReplaceStr;
 
 declare function replace(searchStr: string, replaceWith: ReplaceStr | ReplacerFunc | Readable, options?: Options): Transform;
 
-export default replace;
+export = replace;
