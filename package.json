@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Replaces strings in a stream.",
   "main": "./dist/cjs/index.cjs",
+  "types": "./index.d.ts",
   "type": "module",
   "exports": {
     "import": "./index.js",
