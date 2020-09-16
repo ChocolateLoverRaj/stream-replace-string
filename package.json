@@ -31,5 +31,8 @@
   "homepage": "https://github.com/ChocolateLoverRaj/stream-replace-string#readme",
   "devDependencies": {
     "through2": "^4.0.2"
+  },
+  "optionalDependencies": {
+    "rollup": "^2.27.0"
   }
 }

@@ -1,13 +1,75 @@
-import { Transform } from 'stream';
+import { Transform, Readable } from 'stream';
 import { StringDecoder } from 'string_decoder';
 
 /**
  * 
  * @param {string} searchStr 
- * @param {string} replaceStr
+ * @param {string} replaceWith
  * @param {number} limit
  */
-const replace = (searchStr, replaceStr, limit) => {
+const replace = (searchStr, replaceWith, options = {}) => {
+    //Defaulting
+    if (!options.hasOwnProperty("limit")) {
+        options.limit = Infinity;
+    }
+    if (!options.hasOwnProperty("bufferReplaceStream")) {
+        options.bufferReplaceStream = true;
+    }
+
+    //Type checking
+    if (typeof searchStr !== 'string') {
+        throw new TypeError("searchStr must be a string.");
+    }
+    if (!(
+        typeof replaceWith === 'string' ||
+        replaceWith instanceof Promise ||
+        typeof replaceWith === 'function' ||
+        replaceWith instanceof Readable
+    )) {
+        throw new TypeError("replaceWith must be either a string, a promise resolving a string, a function returning string, a function returning a promise resolving a string, or a readable stream.");
+    }
+    if (typeof options !== 'object') {
+        throw new TypeError("options must be an object.");
+    }
+    if (!(Number.isInteger(options.limit) && options.limit > 0 || options.limit === Infinity)) {
+        throw new TypeError("options.limit must be a positive integer or infinity.");
+    }
+    if (typeof options.bufferReplaceStream !== 'boolean') {
+        throw new TypeError("options.bufferReplaceStream must be a boolean.");
+    }
+    const limit = options.limit;
+
+    //This stuff is for if replaceWith is a readable stream
+    var replaceWithBuffer = '';
+    var replaceWithNewChunk;
+    var isDecodingReplaceWithStream = false;
+    const startDecodingReplaceWithStream = () => {
+        isDecodingReplaceWithStream = true;
+        let stringDecoder = new StringDecoder('utf-8')
+        let dataHandler = data => {
+            replaceWithNewChunk = stringDecoder.write(data)
+            replaceWithBuffer += replaceWithNewChunk;
+        };
+
+        let endHandler = () => {
+            replaceWithNewChunk = stringDecoder.end();
+            replaceWithBuffer += replaceWithNewChunk;
+        }
+
+        replaceWith
+            .on('data', dataHandler)
+            .on('end', endHandler);
+    }
+    if (replaceWith instanceof Readable) {
+        if (options.bufferReplaceStream) {
+            startDecodingReplaceWithStream();
+        }
+        else {
+            replaceWith.pause();
+        }
+    }
+
+
     //Create a new string decoder to turn buffers into strings
     const stringDecoder = new StringDecoder('utf-8');
 
@@ -23,6 +85,55 @@ const replace = (searchStr, replaceStr, limit) => {
     //We have to hold on to this until we are sure.
     var unsureBuffer = '';
 
+    //Get the replace string
+    let replaceStr = typeof replaceWith === 'string' ? replaceWith : undefined;
+    const pushReplaceStr = async () => {
+        switch (typeof replaceWith) {
+            case 'string':
+                transform.push(replaceStr);
+            case 'function':
+                const returnedStr = await replaceWith(matches);
+                if (typeof returnedStr !== 'string') {
+                    throw new TypeError("Replace function did not return a string or a promise resolving a string.");
+                }
+                transform.push(returnedStr);
+            case 'object':
+                if (replaceWith instanceof Promise) {
+                    replaceStr = await replaceWith;
+                    if (typeof replaceStr !== 'string') {
+                        throw new TypeError("Replace promise did not resolve to a string.");
+                    }
+                    transform.push(replaceStr);
+                }
+                else if (replaceWith instanceof Readable) {
+                    await new Promise((resolve, reject) => {
+                        if (!isDecodingReplaceWithStream) {
+                            startDecodingReplaceWithStream();
+                        }
+                        //Push the buffer so far
+                        transform.push(replaceWithBuffer)
+                        if (!replaceWith.readableEnded) {
+                            replaceWith
+                                .on('data', () => {
+                                    transform.push(replaceWithNewChunk);
+                                })
+                                .once('end', () => {
+                                    transform.push(replaceWithNewChunk);
+                                    resolve();
+                                });
+                            replaceWith.resume();
+                        }
+                        else {
+                            resolve();
+                        }
+                    });
+                }
+                break;
+            default:
+                throw new Error("This shouldn't happen.");
+        }
+    }
+
     const foundMatch = () => {
         matches++;
         if (matches === limit) {
@@ -31,7 +142,7 @@ const replace = (searchStr, replaceStr, limit) => {
     }
 
     const transform = new Transform({
-        transform(chunk, encoding, callback) {
+        async transform(chunk, encoding, callback) {
             if (doneReplacing) {
                 callback(false, chunk);
             }
@@ -62,7 +173,7 @@ const replace = (searchStr, replaceStr, limit) => {
                         if (chunkStr.startsWith(searchStr.slice(match))) {
                             //Release that memory
                             this.push(unsureBuffer.slice(0, unsureBuffer.length - match));
-                            this.push(replaceStr);
+                            await pushReplaceStr();
 
                             //Reset unsureBuffer and cross chunk matches
                             unsureBuffer = '';
@@ -100,7 +211,7 @@ const replace = (searchStr, replaceStr, limit) => {
                             //Release that memory
                             this.push(unsureBuffer);
                             this.push(chunkStr.slice(bytesPassed, i));
-                            this.push(replaceStr);
+                            await pushReplaceStr();
 
                             //Reset unsureBuffer and cross chunk matches
                             unsureBuffer = '';
@@ -129,25 +240,6 @@ const replace = (searchStr, replaceStr, limit) => {
     });
 
     return transform;
-}
+};
 
-import through2 from 'through2';
-
-const inputStream = through2();
-
-const outputDecoder = new StringDecoder('utf-8');
-var output = '';
-
-inputStream
-    .pipe(replace("babel", "yellow", 2))
-    .once('end', () => {
-        console.log("result", output)
-    })
-    .on('data', data => {
-        output += outputDecoder.write(data);
-    });
-
-inputStream.write("baba");
-inputStream.write("babab");
-inputStream.write("el. ba")
-inputStream.end();
+export default replace;
