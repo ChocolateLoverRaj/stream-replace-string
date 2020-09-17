@@ -10,7 +10,7 @@
       "import": "./index.js",
       "require": "./dist/cjs/index.cjs"
     },
-    "./build/cjs.cjs": "./build/cjs.cjs"
+    "./": "./"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
