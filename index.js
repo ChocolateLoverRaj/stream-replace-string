@@ -48,12 +48,16 @@ const replace = (searchStr, replaceWith, options = {}) => {
         let stringDecoder = new StringDecoder('utf-8')
         let dataHandler = data => {
             replaceWithNewChunk = stringDecoder.write(data)
-            replaceWithBuffer += replaceWithNewChunk;
+            if (options.bufferReplaceStream) {
+                replaceWithBuffer += replaceWithNewChunk;
+            }
         };
 
         let endHandler = () => {
             replaceWithNewChunk = stringDecoder.end();
-            replaceWithBuffer += replaceWithNewChunk;
+            if (options.bufferReplaceStream) {
+                replaceWithBuffer += replaceWithNewChunk;
+            }
         }
 
         replaceWith
