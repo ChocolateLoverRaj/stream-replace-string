@@ -4,8 +4,8 @@
 name: Standard Js
 
 on:
-  push:
-  pull_request:
+  pull_request: 
+    master
 
 jobs:
   lint:
