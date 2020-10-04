@@ -95,12 +95,14 @@ const replace = (searchStr, replaceWith, options = {}) => {
         switch (typeof replaceWith) {
             case 'string':
                 transform.push(replaceStr);
+                break;
             case 'function':
                 const returnedStr = await replaceWith(matches);
                 if (typeof returnedStr !== 'string') {
                     throw new TypeError("Replace function did not return a string or a promise resolving a string.");
                 }
                 transform.push(returnedStr);
+                break;
             case 'object':
                 if (replaceWith instanceof Promise) {
                     replaceStr = await replaceWith;
