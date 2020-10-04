@@ -13,7 +13,7 @@
     "./": "./"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "standard"
   },
   "repository": {
     "type": "git",
@@ -32,5 +32,8 @@
   "bugs": {
     "url": "https://github.com/ChocolateLoverRaj/stream-replace-string/issues"
   },
-  "homepage": "https://github.com/ChocolateLoverRaj/stream-replace-string#readme"
+  "homepage": "https://github.com/ChocolateLoverRaj/stream-replace-string#readme",
+  "devDependencies": {
+    "standard": "^14.3.4"
+  }
 }
