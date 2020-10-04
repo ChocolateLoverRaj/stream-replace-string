@@ -4,7 +4,7 @@
 name: Standard Js
 
 on:
-  pull_request: master
+  pull_request: [master]
 
 jobs:
   lint:
