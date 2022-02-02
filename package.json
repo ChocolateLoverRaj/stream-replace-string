@@ -8,7 +8,7 @@
   "exports": {
     ".": {
       "import": "./index.js",
-      "require": "./dist/cjs/index.cjs"
+      "require": "./build/cjs.cjs"
     },
     "./": "./"
   },
