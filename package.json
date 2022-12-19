@@ -36,7 +36,7 @@
   "homepage": "https://github.com/ChocolateLoverRaj/stream-replace-string#readme",
   "devDependencies": {
     "baretest": "^2.0.0",
-    "standard": "^14.3.4",
+    "standard": "^17.0.0",
     "stream-to-string": "^1.2.0"
   }
 }
