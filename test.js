@@ -44,4 +44,5 @@ test('mystery bug', async () => {
   ].join(''))
 })
 
-await test.run()
+const allTestsPassed = await test.run()
+if (!allTestsPassed) process.exitCode = 1
