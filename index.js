@@ -43,9 +43,9 @@ const replace = (searchStr, replaceWith, options = {}) => {
   const limit = options.limit
 
   // This stuff is for if replaceWith is a readable stream
-  var replaceWithBuffer = ''
-  var replaceWithNewChunk
-  var isDecodingReplaceWithStream = false
+  let replaceWithBuffer = ''
+  let replaceWithNewChunk
+  let isDecodingReplaceWithStream = false
   const startDecodingReplaceWithStream = () => {
     isDecodingReplaceWithStream = true
     const stringDecoder = new StringDecoder('utf-8')
@@ -79,16 +79,16 @@ const replace = (searchStr, replaceWith, options = {}) => {
   const stringDecoder = new StringDecoder('utf-8')
 
   // Whether the limit has been reached
-  var doneReplacing = false
+  let doneReplacing = false
   // Then number of matches
-  var matches = 0
+  let matches = 0
 
   // The in progress matches waiting for next chunk to be continued
   const crossChunkMatches = []
 
   // The string data that we aren't yet sure it's part of the search string or not
   // We have to hold on to this until we are sure.
-  var unsureBuffer = ''
+  let unsureBuffer = ''
 
   // Get the replace string
   let replaceStr = typeof replaceWith === 'string' ? replaceWith : undefined
