@@ -222,6 +222,8 @@ const replace = (searchStr, replaceWith, options = {}) => {
         }
         // Save the part of the chunk that might be part of a match later
         unsureBuffer += chunkStr.slice(keepEndIndex)
+        // This is needed
+        callback()
       }
     },
     flush (callback) {
