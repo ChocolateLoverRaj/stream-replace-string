@@ -30,7 +30,23 @@ test('within chunk boundary', async () => {
   ]).pipe(replace('grey', 'gray'))), 'red\ngray\norange\n')
 })
 
-test('mystery bug', async () => {
+test('split over multiple chunks', async () => {
+  strictEqual(await streamToString(Readable.from([
+    '|a',
+    'pp',
+    'le|'
+  ]).pipe(replace('apple', 'mela'))), '|mela|')
+})
+
+test('split over multiple chunks 2', async () => {
+  strictEqual(await streamToString(Readable.from([
+    '|apple a',
+    'pp',
+    'le|'
+  ]).pipe(replace('apple', 'mela'))), '|mela mela|')
+})
+
+test('mystery bug #6', async () => {
   strictEqual(await streamToString(Readable.from([
     'One two one\n',
     'One two one\n',
