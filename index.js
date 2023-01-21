@@ -84,7 +84,10 @@ const replace = (searchStr, replaceWith, options = {}) => {
   let matches = 0
 
   // The in progress matches waiting for next chunk to be continued
-  const crossChunkMatches = []
+  /**
+   * An array of numbers, each number is an index which marks the start of the string `unsureBuffer`
+   */
+  let partialMatchesFromPrevChunk = []
 
   // The string data that we aren't yet sure it's part of the search string or not
   // We have to hold on to this until we are sure.
@@ -143,7 +146,8 @@ const replace = (searchStr, replaceWith, options = {}) => {
     }
   }
 
-  const foundMatch = () => {
+  const foundMatch = async () => {
+    await pushReplaceStr()
     matches++
     if (matches === limit) {
       doneReplacing = true
@@ -156,94 +160,74 @@ const replace = (searchStr, replaceWith, options = {}) => {
         callback(undefined, chunk)
       } else {
         // Convert to utf-8
-        const chunkStr = stringDecoder.write(chunk)
+        let chunkStr = stringDecoder.write(chunk)
 
-        // The number of bytes passed in this chunk
-        let bytesPassed = 0
-
-        // Continue cross chunk search
-        let i = 0
-        for (let matchIndex = 0; matchIndex < crossChunkMatches.length; matchIndex++) {
-          const match = crossChunkMatches[matchIndex]
-          const remainingLength = searchStr.length - match
-          const crossesBoundary = remainingLength > chunkStr.length
-          if (crossesBoundary) {
-            // This is for if the search will be partially done
-            if (chunkStr === searchStr.slice(match, match + chunkStr.length)) {
-              crossChunkMatches[matchIndex] += chunkStr.length
+        /**
+         * This is the end index of the string that we might replace later
+         */
+        let keepEndIndex
+        // Continue / complete / discard partial matches from previous chunks
+        for (let i = 0; i < partialMatchesFromPrevChunk.length;) {
+          const pastChunkMatchIndex = partialMatchesFromPrevChunk[i]
+          const chunkStrEndIndex = searchStr.length - (unsureBuffer.length - pastChunkMatchIndex)
+          const strToCheck = unsureBuffer.slice(pastChunkMatchIndex) + chunkStr.slice(0, chunkStrEndIndex)
+          if (searchStr.startsWith(strToCheck)) {
+            if (strToCheck.length >= searchStr.length) {
+              // Match completed
+              // Push the previous part of the string that was saved
+              transform.push(unsureBuffer.slice(0, pastChunkMatchIndex))
+              await foundMatch()
+              unsureBuffer = ''
+              partialMatchesFromPrevChunk = []
+              chunkStr = chunkStr.slice(chunkStrEndIndex)
             } else {
-              crossChunkMatches.splice(matchIndex, 1)
+              // Match continued
+              keepEndIndex = keepEndIndex ?? 0
+              i++
             }
           } else {
-            // This is for the search being complete
-            if (chunkStr.startsWith(searchStr.slice(match))) {
-              // Release that memory
-              this.push(unsureBuffer.slice(0, unsureBuffer.length - match))
-              await pushReplaceStr()
-
-              // Reset unsureBuffer and cross chunk matches
-              unsureBuffer = ''
-              crossChunkMatches.splice(0)
-
-              bytesPassed = searchStr.length - match
-              i += remainingLength
-              foundMatch()
-            } else {
-              crossChunkMatches.splice(matchIndex, 1)
-            }
+            // Match discarded
+            partialMatchesFromPrevChunk.splice(i, 1)
           }
         }
 
-        // The index of the first held byte
-        let firstHeldByte
-
-        // Look for new matches
-        if (!doneReplacing) {
-          for (; i < chunkStr.length; i++) {
-            const boundaryCross = i + searchStr.length - chunkStr.length
-            const restOfChunk = chunkStr.slice(i)
-            if (boundaryCross > 0) {
-              // This is for the search starting partially
-              if (restOfChunk === searchStr.slice(0, chunkStr.length - i)) {
-                if (!firstHeldByte) {
-                  firstHeldByte = i
-                }
-                crossChunkMatches.push(chunkStr.length - i)
-              }
+        // Check for completed / partial matches in the current chunk
+        let chunkStrIndex = 0
+        while (chunkStrIndex < chunkStr.length) {
+          const strToCheck = chunkStr.slice(chunkStrIndex, chunkStrIndex + searchStr.length)
+          if (searchStr.startsWith(strToCheck)) {
+            if (strToCheck.length === searchStr.length) {
+              // Match completed
+              transform.push(chunkStr.slice(0, chunkStrIndex))
+              await foundMatch()
+              chunkStr = chunkStr.slice(chunkStrIndex + strToCheck.length)
+              chunkStrIndex = 0
             } else {
-              // This is for the search to be complete just in this chunk
-              if (restOfChunk.startsWith(searchStr)) {
-                // Release that memory
-                this.push(unsureBuffer)
-                this.push(chunkStr.slice(bytesPassed, i))
-                await pushReplaceStr()
-
-                // Reset unsureBuffer and cross chunk matches
-                unsureBuffer = ''
-                crossChunkMatches.splice(0)
-
-                bytesPassed += i + searchStr.length
-                i += searchStr.length - 1
-                foundMatch()
-                if (doneReplacing) {
-                  break
-                }
-              }
+              // Partial match
+              partialMatchesFromPrevChunk.push(chunkStrIndex)
+              keepEndIndex = keepEndIndex ?? chunkStrIndex
+              chunkStrIndex++
+            }
+          } else {
+            // No match
+            if (keepEndIndex === undefined) {
+              // Push the string out right away
+              transform.push(chunkStr.slice(chunkStrIndex, chunkStrIndex + 1))
+              chunkStr = chunkStr.slice(chunkStrIndex + 1)
+            } else {
+              // We are keeping the string
+              chunkStrIndex++
             }
           }
         }
-
-        // Callback extra memory that's not held
-        callback(undefined, chunkStr.slice(bytesPassed, firstHeldByte))
-
-        // Add held bytes to buffer
-        if (firstHeldByte) {
-          unsureBuffer += chunkStr.slice(firstHeldByte)
-        }
+        // Save the part of the chunk that might be part of a match later
+        unsureBuffer += chunkStr.slice(keepEndIndex)
+        // This is needed
+        callback()
       }
     },
     flush (callback) {
-      // Release the unSureBuffer
+      // Release the unsureBuffer
       callback(undefined, unsureBuffer)
     }
   })
