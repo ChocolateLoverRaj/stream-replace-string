@@ -2,16 +2,9 @@
   "name": "stream-replace-string",
   "version": "1.1.1",
   "description": "Replaces strings in a stream.",
-  "main": "./dist/cjs/index.cjs",
+  "main": "./index.js",
   "types": "./index.d.ts",
   "type": "module",
-  "exports": {
-    ".": {
-      "import": "./index.js",
-      "require": "./dist/cjs/index.cjs"
-    },
-    "./": "./"
-  },
   "scripts": {
     "lint": "standard",
     "test": "node test.js"

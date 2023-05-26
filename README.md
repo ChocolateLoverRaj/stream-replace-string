@@ -49,30 +49,7 @@ The [`replace`](#the-`replace`-function) function returns a Node.js transform st
 ### Efficient memory use.
 The tricky part with this transform stream is knowing when to hold chunks, and when to pass them on. Let's say we were looking for `'paper'` in our text. If our first chunk was: `'perfect pot'`, this module knows that there is no way the string `'perfect pot'` will fit into the search string, `'paper'`. We can then pass the chunks onto the output of the transform stream, available right away for the stream consumer. However, if our first chunk was: `'p'`, we can't pass that on, because there is a change that the next chunk could start with `'aper'`. Since we aren't sure if the `'p'` will be replaced or not, we hold on to this text, and check it once we get the next chunk. If we get `'aper'` in the next chunk, we replace the text. If we get something else, like `'ear'`, we can attach it to the `'p'` and output `'pear'`. It gets even more complicated when multiple potential matches are possible. Let's say we get `'pap'` in our first chunk. We need to be watching the first `'p'` and the third `'p'`, because it could end up being `'paper'`, if the next chunk was `'er'`, or it could end of being `'papaper'`. This package is smart and it will efficiently find matches spanning multiple chunks, and get rid of text it knows won't have a match.
 
-## Using With CommonJS
-If you must use commonjs, then you can convert this package into cjs by using rollup. This package has a small build script which you can call. The build script is located in `/build/cjs.cjs`. The build script uses [`rollup`](https://npmjs.com/package/rollup) to convert it to commonjs. Here is an example of how you can build it for commonjs.
-
-### `build.js`
-```javascript
-const rollup = require('rollup')
-const build = require('stream-replace-string/build/cjs.cjs')
-
-build(rollup)
-    .then(() => {
-        console.log("done building")
-    })
-```
-The build function takes rollup as an argument, and returns a promise that is resolved once it is done building.
-
-### Once you build it, you can `require()` this module normally.
-Even if you use commonjs, the `require()` path stays the same. Just remember to build it.
-
-#### Using with commonjs
-```javascript
-const replace = require('stream-replace-string')
-```
-
-#### Using with ESModules
+#### Importing with ESModules
 ```javascript
 import replace from 'stream-replace-string'
 ```
