@@ -1,6 +1,6 @@
 {
   "name": "stream-replace-string",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "description": "Replaces strings in a stream.",
   "main": "./index.js",
   "types": "./index.d.ts",
